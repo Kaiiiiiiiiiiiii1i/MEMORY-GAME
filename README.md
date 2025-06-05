@@ -1,111 +1,42 @@
-#include <Adafruit_CircuitPlayground.h>
+Memory game
+There are different difficulties for the game, up to 5 levels. For 0-4 pixels will be green and 4-9 will be red there will be random flash for either green or red, the player must click the correct corresponding color (pin4 or 5), up till 5 consecutive flashes then reset. If the player got it wrong, it will play a sad tone and restart the game from 1 flash, if the player got it correct, it will play a happy tone. If the 5th level is completed, it will play a congratulation tone. The slide switch will turn on or off the switch.
 
-// Global Variables
-int sequence[5];// Stores the random LED indices
-int currentStep = 0;// Tracks player progress through sequence
-int flashCount = 1;// start with 1
-bool gameActive = false;
-bool switchChanged = false;
-const int switchPin = 7; // Slide switch pin
 
-// Function Prototypes
-void generateSequence();
-void playSequence();
-void resetGame();
-void switchISR();
-void playHappyTone();
-void playSadTone();
-bool checkInput(int ledIndex);
 
-void setup() {
-  CircuitPlayground.begin();
-  Serial.begin(9600);
+Input 
+Description
+Function
+Pin 7 (Slide switch)
+Toggle on/off
+HIGH/LOW
+Pin 4 (Left button)
+Select green
+Register player’s guess
+Pin 5 (Right button)
+Select red
+Register player’s guess
 
-  pinMode(switchPin, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(switchPin), switchISR, CHANGE); //change in switch pin go to ISR and change
-  pinMode(4, INPUT_PULLDOWN);
-  pinMode(5, INPUT_PULLDOWN);
 
-  generateSequence();
-}
+Output
+Description
+Function
+NeoPixel (0-9)
+Display light
+0-4 for green and 5-9 for red
+Speaker CPX
+Play sound
+Play sad, happy and congradulations
+Serial Monitor
+Debugging/feedback 
+Shows current level and switch state
 
-void loop() {
-  if (switchChanged) {
-    delay(10); // debounce
-    gameActive = digitalRead(switchPin) == LOW;
-    switchChanged = false;
-    resetGame();
-  }
 
-  if (!gameActive) return; //check if game is still active
-
-  playSequence();
-  for (int i = 0; i < flashCount; i++) {
-    bool correct = checkInput(sequence[i]);
-    if (!correct) {
-      playSadTone();
-      resetGame();
-      return;
-    } else {
-      playHappyTone();
-    }
-  }
-
-  delay(300); // small pause before next round
-  flashCount++;
-  if (flashCount > 5) {
-    CircuitPlayground.playTone(880, 300);
-    CircuitPlayground.playTone(988, 300);
-    CircuitPlayground.playTone(1046, 300);
-    resetGame();
-  }
-}
-
-void generateSequence() {
-  for (int i = 0; i < 5; i++) {
-    sequence[i] = random(0, 10);
-  }
-}
-
-void playSequence () {
-  for (int i = 0; i < flashCount; i++) {
-    int led = sequence[i];
-    if (led <= 4) {
-      CircuitPlayground.setPixelColor(led, 0, 255, 0); // Green
-    } else {
-      CircuitPlayground.setPixelColor(led, 255, 0, 0); // Red
-    }
-    delay(300);
-    CircuitPlayground.clearPixels();
-    delay(100);
-  }
-}
-
-bool checkInput(int ledIndex) {
-  bool isGreen = (ledIndex <= 4);
-  while (true) {
-    if (digitalRead(4) == HIGH) return isGreen; //left
-    if (digitalRead(5) == HIGH) return !isGreen;//right
-  }
-}
-
-void resetGame() {
-  currentStep = 0;
-  flashCount = 1;
-  generateSequence();
-  CircuitPlayground.clearPixels();
-}
-
-void switchISR() {
-  switchChanged = true; //flag switch changed
-}
-
-void playHappyTone() {
-  CircuitPlayground.playTone(523, 100);
-}
-
-void playSadTone() {
-  CircuitPlayground.playTone(196, 300);
-}
-
+Flash selection
+Choose left or right randomly
+Button verification
+Observe if green is pressed for 0-4 or red for 5-9
+Increasing sequence
+From 1 flash to 5
+delay
+Delay so that there will be a consecutive of flash
 
